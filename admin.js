@@ -1,5 +1,8 @@
-let supabase;
+let supabase=null;
+let sessionUserId=null;
+let appReady=false;
 
+const loadingPanel=document.getElementById("loadingPanel");
 const loginPanel=document.getElementById("loginPanel");
 const dashboard=document.getElementById("dashboard");
 const loginForm=document.getElementById("loginForm");
@@ -18,9 +21,18 @@ function setStatus(element,textValue,type=""){
   element.className="status "+type;
 }
 
-function getSupabaseError(error){
+function getErrorMessage(error){
   if(!error)return "Erreur inconnue.";
   return (error.message||"Erreur Supabase.")+(error.code?" ["+error.code+"]":"");
+}
+
+function escapeHtml(value){
+  return String(value)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
 }
 
 function formatDate(value){
@@ -35,24 +47,14 @@ function formatReceived(value){
   });
 }
 
-function escapeHtml(value){
-  return String(value)
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
-}
-
-function showLogin(message,type=""){
-  loginPanel.classList.remove("hidden");
-  dashboard.classList.add("hidden");
-  if(message)setStatus(loginStatus,message,type);
-}
-
-function showDashboard(){
+function showOnly(view){
+  loadingPanel.classList.add("hidden");
   loginPanel.classList.add("hidden");
-  dashboard.classList.remove("hidden");
+  dashboard.classList.add("hidden");
+
+  if(view==="loading")loadingPanel.classList.remove("hidden");
+  if(view==="login")loginPanel.classList.remove("hidden");
+  if(view==="dashboard")dashboard.classList.remove("hidden");
 }
 
 async function isAdmin(userId){
@@ -62,34 +64,31 @@ async function isAdmin(userId){
     .eq("user_id",userId)
     .maybeSingle();
 
-  if(error){
-    console.error("Vérification admin:",error);
-    return {ok:false,error};
-  }
+  if(error)return {ok:false,error};
   return {ok:!!data,error:null};
 }
 
-function updateStats(data){
-  count.textContent=data.length;
+function updateStats(rows){
+  count.textContent=rows.length;
   const today=new Date().toISOString().slice(0,10);
-  const upcoming=data.filter(row=>row.date>=today);
+  const upcoming=rows.filter(row=>row.date>=today);
   nextDate.textContent=upcoming.length?formatDate(upcoming[0].date):"—";
 }
 
-function renderRows(data){
-  if(!data.length){
+function renderRows(rows){
+  if(!rows.length){
     responsesBody.innerHTML='<tr><td colspan="5" class="empty">Aucune réponse pour le moment.</td></tr>';
     return;
   }
 
-  responsesBody.innerHTML=data.map(row=>{
-    return '<tr>'+
-      '<td><span class="badge">'+escapeHtml(row.activity)+'</span></td>'+
-      '<td>'+formatDate(row.date)+'</td>'+
-      '<td><strong>'+escapeHtml(String(row.time).slice(0,5))+'</strong></td>'+
-      '<td>'+formatReceived(row.created_at)+'</td>'+
-      '<td><button type="button" class="secondary delete-response" data-id="'+escapeHtml(row.id)+'">SUPPRIMER</button></td>'+
-    '</tr>';
+  responsesBody.innerHTML=rows.map(row=>{
+    return "<tr>"+
+      "<td><span class=\"badge\">"+escapeHtml(row.activity)+"</span></td>"+
+      "<td>"+formatDate(row.date)+"</td>"+
+      "<td><strong>"+escapeHtml(String(row.time).slice(0,5))+"</strong></td>"+
+      "<td>"+formatReceived(row.created_at)+"</td>"+
+      "<td><button type=\"button\" class=\"secondary delete-response\" data-id=\""+escapeHtml(row.id)+"\">SUPPRIMER</button></td>"+
+    "</tr>";
   }).join("");
 
   document.querySelectorAll(".delete-response").forEach(button=>{
@@ -98,8 +97,9 @@ function renderRows(data){
 }
 
 async function loadResponses(){
-  if(!supabase)return;
-  setStatus(dashboardStatus,"Chargement des réponses...");
+  if(!supabase||!sessionUserId)return;
+
+  setStatus(dashboardStatus,"Actualisation...");
   responsesBody.innerHTML='<tr><td colspan="5" class="empty">Chargement...</td></tr>';
 
   const {data,error}=await supabase
@@ -111,12 +111,12 @@ async function loadResponses(){
   if(error){
     console.error("Chargement réponses:",error);
     responsesBody.innerHTML='<tr><td colspan="5" class="empty">Impossible de charger les réponses.</td></tr>';
-    setStatus(dashboardStatus,getSupabaseError(error),"error");
+    setStatus(dashboardStatus,getErrorMessage(error),"error");
     return;
   }
 
-  updateStats(data);
-  renderRows(data);
+  updateStats(data||[]);
+  renderRows(data||[]);
   setStatus(dashboardStatus,"Dernière actualisation : "+new Date().toLocaleTimeString("fr-FR"),"success");
 }
 
@@ -136,8 +136,8 @@ async function deleteResponse(id){
     .eq("id",id);
 
   if(error){
-    console.error("Suppression réponse:",error);
-    setStatus(dashboardStatus,getSupabaseError(error),"error");
+    console.error("Suppression:",error);
+    setStatus(dashboardStatus,getErrorMessage(error),"error");
     if(button){
       button.disabled=false;
       button.textContent="SUPPRIMER";
@@ -149,62 +149,45 @@ async function deleteResponse(id){
   setStatus(dashboardStatus,"Réponse supprimée.","success");
 }
 
-let openingSession=false;
-let activeUserId=null;
-
-async function verifyAndOpen(session){
+async function openForSession(session){
   if(!session||!session.user){
-    activeUserId=null;
-    showLogin("Aucune session enregistrée. Connecte-toi.");
-    return false;
+    sessionUserId=null;
+    showOnly("login");
+    setStatus(loginStatus,"Connecte-toi pour accéder à l'administration.");
+    return;
   }
 
-  if(openingSession && activeUserId===session.user.id)return true;
-  if(activeUserId===session.user.id && !dashboard.classList.contains("hidden"))return true;
+  sessionUserId=session.user.id;
 
-  openingSession=true;
-  activeUserId=session.user.id;
-  setStatus(loginStatus,"Session retrouvée — vérification des droits...","success");
+  const adminCheck=await isAdmin(session.user.id);
 
-  try{
-    const result=await isAdmin(session.user.id);
-
-    if(result.error){
-      console.error("Vérification admin:",result.error);
-      // Ne masque jamais un tableau déjà ouvert à cause d'une erreur réseau temporaire.
-      if(!dashboard.classList.contains("hidden")){
-        setStatus(dashboardStatus,"Session conservée. Vérification temporairement indisponible.","error");
-        return true;
-      }
-      setStatus(loginStatus,"Impossible de vérifier les droits pour le moment. Réessaie sans te déconnecter.","error");
-      return false;
-    }
-
-    if(!result.ok){
-      await supabase.auth.signOut();
-      activeUserId=null;
-      showLogin("Ce compte n’a pas accès à l’administration.","error");
-      return false;
-    }
-
-    showDashboard();
-    await loadResponses();
-    return true;
-  }finally{
-    openingSession=false;
+  if(adminCheck.error){
+    console.error("Droits admin:",adminCheck.error);
+    sessionUserId=null;
+    showOnly("login");
+    setStatus(loginStatus,"Impossible de vérifier les droits administrateur. Réessaie.");
+    return;
   }
+
+  if(!adminCheck.ok){
+    await supabase.auth.signOut();
+    sessionUserId=null;
+    showOnly("login");
+    setStatus(loginStatus,"Ce compte n'a pas accès à l'administration.","error");
+    return;
+  }
+
+  showOnly("dashboard");
+  await loadResponses();
 }
 
-async function init(){
-  showLogin("Chargement de la dernière version de l'administration...");
+async function startAdmin(){
+  showOnly("loading");
 
   try{
-    if(!window.supabase){
-      throw new Error("Supabase JS ne s’est pas chargé.");
-    }
-
+    if(!window.supabase)throw new Error("Supabase JS ne s'est pas chargé.");
     if(typeof SUPABASE_URL==="undefined"||typeof SUPABASE_PUBLISHABLE_KEY==="undefined"){
-      throw new Error("La configuration Supabase est introuvable.");
+      throw new Error("Configuration Supabase introuvable.");
     }
 
     supabase=window.supabase.createClient(
@@ -219,29 +202,37 @@ async function init(){
       }
     );
 
-    supabase.auth.onAuthStateChange((event)=>{
-      if(event==="SIGNED_OUT"){
-        activeUserId=null;
-        showLogin("Déconnecté.");
-      }
-    });
-
+    // Une seule lecture de session au démarrage.
+    // Aucun événement INITIAL_SESSION/TOKEN_REFRESHED ne change l'écran.
     const {data,error}=await supabase.auth.getSession();
     if(error)throw error;
 
-    if(data.session){
-      await verifyAndOpen(data.session);
-    }else{
-      showLogin("Aucune session enregistrée. Connecte-toi.");
-    }
+    await openForSession(data.session);
+
+    // Seule une vraie déconnexion change l'écran.
+    supabase.auth.onAuthStateChange(event=>{
+      if(event==="SIGNED_OUT"){
+        sessionUserId=null;
+        showOnly("login");
+        setStatus(loginStatus,"Déconnecté.");
+      }
+    });
+
+    appReady=true;
   }catch(error){
-    console.error("Initialisation:",error);
-    showLogin(getSupabaseError(error),"error");
+    console.error("Administration:",error);
+    showOnly("login");
+    setStatus(loginStatus,getErrorMessage(error),"error");
   }
 }
 
 loginForm.addEventListener("submit",async event=>{
   event.preventDefault();
+
+  if(!supabase){
+    setStatus(loginStatus,"Initialisation de la connexion...","error");
+    return;
+  }
 
   const email=document.getElementById("email").value.trim();
   const password=document.getElementById("password").value;
@@ -258,11 +249,11 @@ loginForm.addEventListener("submit",async event=>{
   try{
     const {data,error}=await supabase.auth.signInWithPassword({email,password});
     if(error)throw error;
-    if(!data.user)throw new Error("Aucun utilisateur retourné.");
-    await verifyAndOpen(data.session);
+    if(!data.session)throw new Error("Session non créée.");
+    await openForSession(data.session);
   }catch(error){
     console.error("Connexion:",error);
-    setStatus(loginStatus,getSupabaseError(error),"error");
+    setStatus(loginStatus,getErrorMessage(error),"error");
   }finally{
     loginButton.disabled=false;
     loginButton.textContent="SE CONNECTER";
@@ -270,13 +261,9 @@ loginForm.addEventListener("submit",async event=>{
 });
 
 logoutButton.addEventListener("click",async()=>{
-  await supabase.auth.signOut();
+  if(supabase)await supabase.auth.signOut();
 });
 
 refreshButton.addEventListener("click",loadResponses);
 
-window.addEventListener("error",event=>{
-  setStatus(loginStatus,"Erreur JavaScript : "+(event.message||"erreur inconnue"),"error");
-});
-
-init();
+startAdmin();
