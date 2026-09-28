@@ -4,42 +4,6 @@ const message=document.getElementById("message");
 const actions=document.getElementById("actions");
 const app=document.getElementById("app");
 
-let attempts=0;
-const messages=[
-  "J'attends ta réponse 👀",
-  "T'es sûr(e) ?",
-  "Raté 😂",
-  "Encore essayé ?",
-  "Ce bouton est rapide aujourd'hui...",
-  "Presque !",
-  "Tu vas vraiment continuer ? 👀"
-];
-
-function escapeNo(){
-  attempts++;
-  message.textContent=messages[Math.min(attempts,messages.length-1)];
-
-  const box=actions.getBoundingClientRect();
-  const button=no.getBoundingClientRect();
-
-  no.style.position="absolute";
-  no.style.left=(8+Math.random()*Math.max(8,box.width-button.width-16))+"px";
-  no.style.top=(8+Math.random()*Math.max(8,box.height-button.height-16))+"px";
-  no.style.transform="rotate("+((Math.random()*16)-8).toFixed(1)+"deg) scale("+Math.max(.82,1-attempts*.025)+")";
-}
-
-["mouseenter","pointerdown","touchstart"].forEach(event=>{
-  no.addEventListener(event,e=>{
-    if(event!=="mouseenter") e.preventDefault();
-    escapeNo();
-  },{passive:false});
-});
-
-no.addEventListener("click",e=>{
-  e.preventDefault();
-  escapeNo();
-});
-
 yes.addEventListener("click",()=>{
   app.innerHTML=
     '<div class="icon">✓</div>'+
@@ -49,6 +13,14 @@ yes.addEventListener("click",()=>{
     '<div class="actions"><button class="yes" id="continue">CONTINUER</button></div>';
 
   document.getElementById("continue").onclick=showChoices;
+});
+
+no.addEventListener("click",()=>{
+  app.innerHTML=
+    '<div class="icon">○</div>'+
+    '<p class="eyebrow">RÉPONSE ENREGISTRÉE</p>'+
+    '<h1>D’accord, pas de sortie.</h1>'+
+    '<p class="sub">Merci d’avoir répondu 🙂</p>';
 });
 
 function showChoices(){
