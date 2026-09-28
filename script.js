@@ -83,51 +83,36 @@ no.addEventListener("click",()=>{
 
 function showChoices(){
   app.innerHTML=
-    '<div class="icon">✦</div>'+
-    '<p class="eyebrow">LE PROGRAMME</p>'+
-    '<h1>Tu préfères quoi ?</h1>'+
-    '<p class="sub">Choisis une idée de sortie.</p>'+
-    '<div class="actions choices" style="height:auto;flex-wrap:wrap">'+
-      '<button class="yes choice">🎬 Ciné</button>'+
-      '<button class="yes choice">🍕 Manger</button>'+
-      '<button class="yes choice">🚶 Balade</button>'+
-      '<button class="yes choice">🎲 Activité</button>'+
+    '<div class="icon">🎡</div>'+
+    '<p class="eyebrow">LA PROPOSITION</p>'+
+    '<h1>Mercredi 30 septembre</h1>'+
+    '<p class="sub">Vers 14h : fête foraine 🎡<br>'+
+    'Puis à 17h : taureaux en ville 🐂<br>'+
+    '📍 Saint-Rémy-de-Provence</p>'+
+    '<div class="actions">'+
+      '<button class="yes" id="continue">ÇA ME VA</button>'+
     '</div>';
 
-  document.querySelectorAll(".choice").forEach(button=>{
-    button.onclick=()=>showDateForm(button.textContent.trim());
-  });
+  document.getElementById("continue").onclick=()=>showDateForm("🎡 Fête foraine vers 14h → 🐂 Taureaux en ville à 17h");
 }
 
 function showDateForm(activity){
+  const date="2026-09-30";
+  const time="14:00";
+
   app.innerHTML=
     '<div class="icon">📅</div>'+
-    '<p class="eyebrow">ORGANISATION</p>'+
-    '<h1>Quand est-ce qu’on fait ça ?</h1>'+
-    '<p class="sub">Choisis le jour et l’heure.</p>'+
-    '<div class="form">'+
-      '<label>Quel jour ?<input id="date" type="date" required></label>'+
-      '<label>À quelle heure ?<input id="time" type="time" required></label>'+
+    '<p class="eyebrow">SORTIE PROPOSÉE</p>'+
+    '<h1>Mercredi 30 septembre</h1>'+
+    '<p class="sub">'+escapeHtml(activity)+'<br>📍 Saint-Rémy-de-Provence</p>'+
+    '<div class="actions">'+
       '<button class="yes" id="confirm">CONFIRMER LA SORTIE</button>'+
-      '<p class="form-status" id="formStatus"></p>'+
-    '</div>';
+    '</div>'+
+    '<p class="form-status" id="formStatus"></p>';
 
-  const dateInput=document.getElementById("date");
-  const timeInput=document.getElementById("time");
   const status=document.getElementById("formStatus");
 
-  dateInput.min=new Date().toISOString().split("T")[0];
-
   document.getElementById("confirm").onclick=async()=>{
-    const date=dateInput.value;
-    const time=timeInput.value;
-
-    if(!date||!time){
-      status.textContent="Choisis le jour et l’heure avant de confirmer.";
-      status.className="form-status error";
-      return;
-    }
-
     const confirmButton=document.getElementById("confirm");
     confirmButton.disabled=true;
     confirmButton.textContent="ENREGISTREMENT...";
@@ -145,18 +130,14 @@ function showDateForm(activity){
       return;
     }
 
-    const formatted=new Date(date+"T00:00:00").toLocaleDateString("fr-FR",{
-      weekday:"long",
-      day:"numeric",
-      month:"long",
-      year:"numeric"
-    });
-
     app.innerHTML=
       '<div class="icon">✓</div>'+
       '<p class="eyebrow">SORTIE CONFIRMÉE</p>'+
       '<h1>C’est noté !</h1>'+
-      '<p class="sub">'+escapeHtml(activity)+'<br>📅 '+formatted+'<br>🕐 '+time+'</p>'+
+      '<p class="sub">Mercredi 30 septembre<br>'+
+      '🎡 Fête foraine vers 14h<br>'+
+      '🐂 Taureaux en ville à 17h<br>'+
+      '📍 Saint-Rémy-de-Provence</p>'+
       '<p class="sub">À bientôt 👋</p>';
   };
 }
