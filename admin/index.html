@@ -4,16 +4,25 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#111827">
-<title>Administration — Je t'aime</title>
-<link id="adminCss" rel="stylesheet" href="../admin.css">
+<meta name="color-scheme" content="light">
+<title>Administration — Sortie</title>
+<link rel="stylesheet" href="../admin.css">
 </head>
 <body>
 <main class="admin-shell">
-  <section class="panel" id="loginPanel">
-    <div class="brand">💗</div>
+  <section class="loading-panel" id="loadingPanel" aria-live="polite">
+    <div class="brand">◈</div>
+    <p class="eyebrow">ESPACE PRIVÉ</p>
+    <h1>Chargement…</h1>
+    <p class="muted">Vérification de ta session en cours.</p>
+    <div class="loading-dot" aria-hidden="true"></div>
+  </section>
+
+  <section class="panel hidden" id="loginPanel">
+    <div class="brand">◈</div>
     <p class="eyebrow">ESPACE PRIVÉ</p>
     <h1>Administration</h1>
-    <p class="muted">La session est conservée sur cet appareil. La page charge automatiquement la dernière version du code.</p>
+    <p class="muted">Connecte-toi pour voir les nouveaux rendez-vous.</p>
 
     <form id="loginForm" class="login-form" novalidate>
       <label>Email
@@ -24,7 +33,7 @@
       </label>
       <button class="primary" type="submit" id="loginButton">SE CONNECTER</button>
       <a class="forgot-link" href="../reset-password.html">Mot de passe oublié ?</a>
-      <p class="status success" id="loginStatus">Chargement de l’administration…</p>
+      <p class="status" id="loginStatus"></p>
     </form>
   </section>
 
@@ -32,11 +41,11 @@
     <header class="topbar">
       <div>
         <p class="eyebrow">TABLEAU DE BORD</p>
-        <h1>Réponses au date</h1>
+        <h1>Nouveaux rendez-vous</h1>
       </div>
       <div class="top-actions">
-        <button class="secondary" id="refreshButton">↻ Actualiser</button>
-        <button class="secondary" id="logoutButton">Déconnexion</button>
+        <button class="secondary" id="refreshButton" type="button">↻ Actualiser</button>
+        <button class="secondary" id="logoutButton" type="button">Déconnexion</button>
       </div>
     </header>
 
@@ -70,8 +79,6 @@
 <script>
 (function(){
   const version=Date.now();
-  const css=document.getElementById("adminCss");
-  if(css)css.href="../admin.css?v="+version;
 
   function loadScript(src){
     return new Promise((resolve,reject)=>{
@@ -86,10 +93,13 @@
   loadScript("../supabase-config.js?v="+version)
     .then(()=>loadScript("../admin.js?v="+version))
     .catch(error=>{
-      const status=document.getElementById("loginStatus");
-      if(status){
-        status.textContent=error.message;
-        status.className="status error";
+      const loading=document.getElementById("loadingPanel");
+      if(loading){
+        loading.innerHTML=
+          '<div class="brand">!</div>'+
+          '<p class="eyebrow">ERREUR</p>'+
+          '<h1>Administration indisponible</h1>'+
+          '<p class="muted">'+error.message+'</p>';
       }
     });
 })();
