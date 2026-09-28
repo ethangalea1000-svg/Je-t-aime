@@ -7,7 +7,7 @@ const app=document.getElementById("app");
 let attempts=0;
 const messages=[
   "J'attends ta réponse 👀",
-  "T'es sûr(e) ? 😏",
+  "T'es sûr(e) ?",
   "Raté 😂",
   "Encore essayé ?",
   "Ce bouton est rapide aujourd'hui...",
@@ -42,21 +42,21 @@ no.addEventListener("click",e=>{
 
 yes.addEventListener("click",()=>{
   app.innerHTML=
-    '<div class="heart">💗</div>'+
+    '<div class="icon">✓</div>'+
     '<p class="eyebrow">C’EST PARTI</p>'+
-    '<h1>Alors... on organise ce date ?</h1>'+
+    '<h1>On organise cette sortie ?</h1>'+
     '<p class="sub">Choisis ce qui te ferait plaisir.</p>'+
-    '<div class="actions"><button class="yes" id="continue">CONTINUER ✨</button></div>';
+    '<div class="actions"><button class="yes" id="continue">CONTINUER</button></div>';
 
   document.getElementById("continue").onclick=showChoices;
 });
 
 function showChoices(){
   app.innerHTML=
-    '<div class="heart">✨</div>'+
+    '<div class="icon">✦</div>'+
     '<p class="eyebrow">LE PROGRAMME</p>'+
     '<h1>Tu préfères quoi ?</h1>'+
-    '<p class="sub">Choisis une idée pour le date.</p>'+
+    '<p class="sub">Choisis une idée de sortie.</p>'+
     '<div class="actions choices" style="height:auto;flex-wrap:wrap">'+
       '<button class="yes choice">🎬 Ciné</button>'+
       '<button class="yes choice">🍕 Manger</button>'+
@@ -71,14 +71,14 @@ function showChoices(){
 
 function showDateForm(activity){
   app.innerHTML=
-    '<div class="heart">🥰</div>'+
-    '<p class="eyebrow">RENDEZ-VOUS</p>'+
-    '<h1>Parfait 💗</h1>'+
-    '<p class="sub">Il ne reste plus qu’à choisir le jour et l’heure ensemble.</p>'+
+    '<div class="icon">📅</div>'+
+    '<p class="eyebrow">ORGANISATION</p>'+
+    '<h1>Quand est-ce qu’on fait ça ?</h1>'+
+    '<p class="sub">Choisis le jour et l’heure.</p>'+
     '<div class="form">'+
-      '<label>📅 Quel jour ?<input id="date" type="date" required></label>'+
-      '<label>🕐 À quelle heure ?<input id="time" type="time" required></label>'+
-      '<button class="yes" id="confirm">CONFIRMER LE DATE 💞</button>'+
+      '<label>Quel jour ?<input id="date" type="date" required></label>'+
+      '<label>À quelle heure ?<input id="time" type="time" required></label>'+
+      '<button class="yes" id="confirm">CONFIRMER LA SORTIE</button>'+
       '<p class="form-status" id="formStatus"></p>'+
     '</div>';
 
@@ -93,7 +93,7 @@ function showDateForm(activity){
     const time=timeInput.value;
 
     if(!date||!time){
-      status.textContent="Choisis le jour et l’heure avant de confirmer 💗";
+      status.textContent="Choisis le jour et l’heure avant de confirmer.";
       status.className="form-status error";
       return;
     }
@@ -104,18 +104,14 @@ function showDateForm(activity){
 
     const {error}=await supabaseClient
       .from("date_responses")
-      .insert({
-        activity,
-        date,
-        time
-      });
+      .insert({activity,date,time});
 
     if(error){
       console.error(error);
       status.textContent="Impossible d’enregistrer la réponse. Réessaie.";
       status.className="form-status error";
       confirmButton.disabled=false;
-      confirmButton.textContent="CONFIRMER LE DATE 💞";
+      confirmButton.textContent="CONFIRMER LA SORTIE";
       return;
     }
 
@@ -127,11 +123,11 @@ function showDateForm(activity){
     });
 
     app.innerHTML=
-      '<div class="heart">💞</div>'+
-      '<p class="eyebrow">DATE CONFIRMÉ</p>'+
-      '<h1>C’est réservé !</h1>'+
-      '<p class="sub">✨ '+escapeHtml(activity)+'<br>📅 '+formatted+'<br>🕐 '+time+'</p>'+
-      '<p class="sub">À très bientôt 💗</p>';
+      '<div class="icon">✓</div>'+
+      '<p class="eyebrow">SORTIE CONFIRMÉE</p>'+
+      '<h1>C’est noté !</h1>'+
+      '<p class="sub">'+escapeHtml(activity)+'<br>📅 '+formatted+'<br>🕐 '+time+'</p>'+
+      '<p class="sub">À bientôt 👋</p>';
   };
 }
 
