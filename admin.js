@@ -149,32 +149,50 @@ async function deleteResponse(id){
   setStatus(dashboardStatus,"Réponse supprimée.","success");
 }
 
+let openingSession=false;
+let activeUserId=null;
+
 async function verifyAndOpen(session){
   if(!session||!session.user){
-    showLogin("Session absente. Connecte-toi pour accéder à l'administration.");
-    return;
+    activeUserId=null;
+    showLogin("Aucune session enregistrée. Connecte-toi.");
+    return false;
   }
 
+  if(openingSession && activeUserId===session.user.id)return true;
+  if(activeUserId===session.user.id && !dashboard.classList.contains("hidden"))return true;
+
+  openingSession=true;
+  activeUserId=session.user.id;
   setStatus(loginStatus,"Session retrouvée — vérification des droits...","success");
 
-  const result=await isAdmin(session.user.id);
+  try{
+    const result=await isAdmin(session.user.id);
 
-  if(result.error){
-    showLogin(
-      "La session est conservée, mais la vérification des droits a échoué. Réessaie sans te déconnecter.",
-      "error"
-    );
-    return;
+    if(result.error){
+      console.error("Vérification admin:",result.error);
+      // Ne masque jamais un tableau déjà ouvert à cause d'une erreur réseau temporaire.
+      if(!dashboard.classList.contains("hidden")){
+        setStatus(dashboardStatus,"Session conservée. Vérification temporairement indisponible.","error");
+        return true;
+      }
+      setStatus(loginStatus,"Impossible de vérifier les droits pour le moment. Réessaie sans te déconnecter.","error");
+      return false;
+    }
+
+    if(!result.ok){
+      await supabase.auth.signOut();
+      activeUserId=null;
+      showLogin("Ce compte n’a pas accès à l’administration.","error");
+      return false;
+    }
+
+    showDashboard();
+    await loadResponses();
+    return true;
+  }finally{
+    openingSession=false;
   }
-
-  if(!result.ok){
-    await supabase.auth.signOut();
-    showLogin("Ce compte n’a pas accès à l’administration.","error");
-    return;
-  }
-
-  showDashboard();
-  await loadResponses();
 }
 
 async function init(){
@@ -201,14 +219,10 @@ async function init(){
       }
     );
 
-    supabase.auth.onAuthStateChange((event,session)=>{
+    supabase.auth.onAuthStateChange((event)=>{
       if(event==="SIGNED_OUT"){
+        activeUserId=null;
         showLogin("Déconnecté.");
-        return;
-      }
-
-      if((event==="SIGNED_IN"||event==="INITIAL_SESSION"||event==="TOKEN_REFRESHED")&&session){
-        setTimeout(()=>verifyAndOpen(session),0);
       }
     });
 
