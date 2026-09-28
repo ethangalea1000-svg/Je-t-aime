@@ -39,7 +39,7 @@ yes.addEventListener("click",()=>{
     '<div class="icon">✓</div>'+
     '<p class="eyebrow">C’EST PARTI</p>'+
     '<h1>On organise cette sortie ?</h1>'+
-    '<p class="sub">Choisis ce qui te ferait plaisir.</p>'+
+    '<p class="sub">On regarde la proposition.</p>'+
     '<div class="actions"><button class="yes" id="continue">CONTINUER</button></div>';
 
   document.getElementById("continue").onclick=showChoices;
@@ -51,34 +51,31 @@ no.addEventListener("click",()=>{
   const currentMessage=noMessages[(noClickCount-1)%noMessages.length];
   const round=Math.floor((noClickCount-1)/noMessages.length)+1;
 
-  message.textContent=currentMessage;
+  message.textContent=noClickCount%5===0
+    ? currentMessage+" — Et oui, ça continue. ♾️"
+    : currentMessage;
   message.dataset.round=round;
+  no.textContent="NON ?";
 
-  if(noClickCount%5===0){
-    message.textContent=currentMessage+" — Et oui, ça continue. ♾️";
-  }
+  const rect=actions.getBoundingClientRect();
+  const buttonWidth=Math.max(no.offsetWidth,70);
+  const buttonHeight=Math.max(no.offsetHeight,50);
 
-  no.textContent=noClickCount>1
-    ? "NON ?"
-    : "NON";
-
-  // Le bouton rétrécit progressivement.
-  const scale=Math.max(0.24,1-(noClickCount*0.055));
-
-  // Puis il change de place à chaque clic, dans une zone contrôlée.
-  const maxX=Math.min(150,90+noClickCount*3);
-  const maxY=Math.min(30,10+noClickCount*1.5);
-  const x=Math.round((Math.random()*2-1)*maxX);
-  const y=Math.round((Math.random()*2-1)*maxY);
-  const rotation=Math.round((Math.random()*2-1)*8);
+  // On calcule une zone sûre : le bouton reste visible même sur petit écran.
+  const availableX=Math.max(0,(rect.width-buttonWidth)/2-8);
+  const availableY=Math.max(0,(rect.height-buttonHeight)/2-6);
+  const x=(Math.random()*2-1)*Math.min(availableX,150);
+  const y=(Math.random()*2-1)*Math.min(availableY,42);
+  const rotation=(Math.random()*2-1)*7;
+  const scale=Math.max(0.42,1-(noClickCount*0.045));
 
   no.style.position="absolute";
   no.style.left="50%";
   no.style.top="50%";
   no.style.transform=
-    "translate(calc(-50% + "+x+"px), calc(-50% + "+y+"px)) scale("+scale+") rotate("+rotation+"deg)";
+    "translate(calc(-50% + "+x.toFixed(1)+"px), calc(-50% + "+y.toFixed(1)+"px)) scale("+scale.toFixed(3)+") rotate("+rotation.toFixed(1)+"deg)";
   no.style.transformOrigin="center center";
-  no.style.transition="transform .28s ease";
+  no.style.transition="transform .25s cubic-bezier(.2,.8,.2,1)";
 });
 
 function showChoices(){
@@ -117,9 +114,16 @@ function showDateForm(activity){
     confirmButton.disabled=true;
     confirmButton.textContent="ENREGISTREMENT...";
 
-    const {error}=await supabaseClient
-      .from("date_responses")
-      .insert({activity,date,time});
+    if(!window.supabase||typeof SUPABASE_URL==="undefined"||typeof SUPABASE_PUBLISHABLE_KEY==="undefined"){
+      status.textContent="La connexion au service n’est pas disponible. Recharge la page.";
+      status.className="form-status error";
+      confirmButton.disabled=false;
+      confirmButton.textContent="CONFIRMER LA SORTIE";
+      return;
+    }
+
+    const supabaseClient=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+    const {error}=await supabaseClient.from("date_responses").insert({activity,date,time});
 
     if(error){
       console.error(error);
