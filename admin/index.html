@@ -144,7 +144,7 @@
         ? rows.data.map(function(row){
             const d=new Date(row.date+"T00:00:00").toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short",year:"numeric"});
             const r=new Date(row.created_at).toLocaleString("fr-FR",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"});
-            return "<tr><td>"+String(row.activity).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")+"</td><td>"+d+"</td><td><strong>"+String(row.time).slice(0,5)+"</strong></td><td>"+r+"</td><td><button class=\"secondary delete-response\" data-id=\""+String(row.id)+"\">Supprimer</button></td></tr>";
+            return "<tr><td>"+String(row.activity).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")+" <button type=\"button\" class=\"secondary delete-response\" data-id=\""+String(row.id)+"\">SUPPRIMER</button></td><td>"+d+"</td><td><strong>"+String(row.time).slice(0,5)+"</strong></td><td>"+r+"</td></tr>";
           }).join("")
         : "<tr><td colspan=\"5\" class=\"empty\">Aucune réponse.</td></tr>";
 
