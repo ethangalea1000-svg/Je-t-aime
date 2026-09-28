@@ -140,6 +140,7 @@ loginForm.addEventListener("submit",async(event)=>{
   const email=document.getElementById("email").value.trim();
   const password=document.getElementById("password").value;
 
+  setStatus(loginStatus,"Le clic est bien détecté. Connexion en cours…","success");
   loginButton.disabled=true;
   loginButton.textContent="CONNEXION...";
   setStatus(loginStatus,"Connexion en cours...");
@@ -189,5 +190,7 @@ function escapeHtml(value){
     .replaceAll('"',"&quot;")
     .replaceAll("'","&#039;");
 }
+
+window.addEventListener("error",(event)=>{ setStatus(loginStatus,"Erreur JavaScript : "+(event.message||"erreur inconnue"),"error"); });
 
 init();
