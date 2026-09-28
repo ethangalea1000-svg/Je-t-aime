@@ -68,5 +68,99 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="../supabase-config.js?v=11"></script>
 <script src="../admin.js?v=11"></script>
+<script>
+(function(){
+  const form=document.getElementById("loginForm");
+  const button=document.getElementById("loginButton");
+  const status=document.getElementById("loginStatus");
+
+  function say(msg,type){
+    if(!status)return;
+    status.textContent=msg;
+    status.className="status "+(type||"");
+  }
+
+  async function doLogin(event){
+    if(event) event.preventDefault();
+    say("Clic détecté — connexion en cours…","success");
+    button.disabled=true;
+    button.textContent="CONNEXION...";
+
+    try{
+      if(!window.supabase) throw new Error("Supabase JS ne s'est pas chargé.");
+      if(typeof SUPABASE_URL==="undefined" || typeof SUPABASE_PUBLISHABLE_KEY==="undefined"){
+        throw new Error("Configuration Supabase introuvable.");
+      }
+
+      const email=document.getElementById("email").value.trim();
+      const password=document.getElementById("password").value;
+
+      if(!email || !password){
+        throw new Error("Entre ton email et ton mot de passe.");
+      }
+
+      const client=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
+      const result=await client.auth.signInWithPassword({email,password});
+
+      if(result.error) throw result.error;
+      if(!result.data.user) throw new Error("Aucun utilisateur retourné.");
+
+      say("Compte connecté — vérification des droits admin…","success");
+
+      const check=await client
+        .from("date_admins")
+        .select("user_id")
+        .eq("user_id",result.data.user.id)
+        .maybeSingle();
+
+      if(check.error) throw check.error;
+
+      if(!check.data){
+        await client.auth.signOut();
+        throw new Error("Ce compte n'est pas autorisé à accéder à l'administration.");
+      }
+
+      document.getElementById("loginPanel").classList.add("hidden");
+      document.getElementById("dashboard").classList.remove("hidden");
+
+      const body=document.getElementById("responsesBody");
+      body.innerHTML="<tr><td colspan=\"4\" class=\"empty\">Chargement...</td></tr>";
+
+      const rows=await client
+        .from("date_responses")
+        .select("id,activity,date,time,created_at")
+        .order("date",{ascending:true})
+        .order("time",{ascending:true});
+
+      if(rows.error) throw rows.error;
+
+      document.getElementById("count").textContent=rows.data.length;
+      document.getElementById("nextDate").textContent=rows.data.length
+        ? new Date(rows.data[0].date+"T00:00:00").toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short",year:"numeric"})
+        : "—";
+
+      body.innerHTML=rows.data.length
+        ? rows.data.map(function(row){
+            const d=new Date(row.date+"T00:00:00").toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short",year:"numeric"});
+            const r=new Date(row.created_at).toLocaleString("fr-FR",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"});
+            return "<tr><td>"+String(row.activity).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")+"</td><td>"+d+"</td><td><strong>"+String(row.time).slice(0,5)+"</strong></td><td>"+r+"</td></tr>";
+          }).join("")
+        : "<tr><td colspan=\"4\" class=\"empty\">Aucune réponse.</td></tr>";
+
+      document.getElementById("dashboardStatus").textContent="Connexion réussie.";
+    }catch(error){
+      console.error(error);
+      say(error && error.message ? error.message : "Erreur inconnue.","error");
+    }finally{
+      button.disabled=false;
+      button.textContent="SE CONNECTER";
+    }
+  }
+
+  form.addEventListener("submit",doLogin);
+  button.addEventListener("click",doLogin);
+  say("JavaScript de connexion chargé.","success");
+})();
+</script>
 </body>
 </html>
