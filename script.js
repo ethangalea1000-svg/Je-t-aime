@@ -83,19 +83,19 @@ function showChoices(){
     '<div class="icon">🎡</div>'+
     '<p class="eyebrow">LA PROPOSITION</p>'+
     '<h1>Mercredi 30 septembre</h1>'+
-    '<p class="sub">Vers 14h : fête foraine 🎡<br>'+
+    '<p class="sub">Vers 14h : fête foraine 🎡<br>Rendez-vous en ville à 16h 📍<br>'+
     'Puis à 17h : taureaux en ville 🐂<br>'+
     '📍 Saint-Rémy-de-Provence</p>'+
     '<div class="actions">'+
       '<button class="yes" id="continue">ÇA ME VA</button>'+
     '</div>';
 
-  document.getElementById("continue").onclick=()=>showDateForm("🎡 Fête foraine vers 14h → 🐂 Taureaux en ville à 17h");
+  document.getElementById("continue").onclick=()=>showDateForm("🎡 Fête foraine vers 14h → 📍 Rendez-vous en ville à 16h → 🐂 Taureaux en ville à 17h");
 }
 
 function showDateForm(activity){
   const date="2026-09-30";
-  const time="14:00";
+  const time="16:00";
 
   app.innerHTML=
     '<div class="icon">📅</div>'+
@@ -140,6 +140,7 @@ function showDateForm(activity){
       '<h1>C’est noté !</h1>'+
       '<p class="sub">Mercredi 30 septembre<br>'+
       '🎡 Fête foraine vers 14h<br>'+
+      '📍 Rendez-vous en ville à 16h<br>'+
       '🐂 Taureaux en ville à 17h<br>'+
       '📍 Saint-Rémy-de-Provence</p>'+
       '<p class="sub">À bientôt 👋</p>';
