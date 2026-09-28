@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#111827">
+<title>Administration — Sortie — V18</title>
+<link rel="stylesheet" href="../admin.css?v=18">
+</head>
+<body>
+<main class="admin-shell">
+  <section class="panel" id="loginPanel">
+    <div class="brand">◈</div>
+    <p class="eyebrow">ESPACE PRIVÉ</p>
+    <h1>Administration</h1>
+    <p class="muted">La session est conservée sur cet appareil. Les nouveaux rendez-vous apparaissent ici.</p>
+
+    <form id="loginForm" class="login-form" novalidate>
+      <label>Email
+        <input id="email" type="email" autocomplete="username" required>
+      </label>
+      <label>Mot de passe
+        <input id="password" type="password" autocomplete="current-password" required>
+      </label>
+      <button class="primary" type="submit" id="loginButton">SE CONNECTER</button>
+      <a class="forgot-link" href="../reset-password.html">Mot de passe oublié ?</a>
+      <p class="status" id="loginStatus">Entre tes identifiants pour accéder aux nouveaux rendez-vous.</p>
+    </form>
+  </section>
+
+  <section class="dashboard hidden" id="dashboard">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">TABLEAU DE BORD</p>
+        <h1>Nouveaux rendez-vous</h1>
+      </div>
+      <div class="top-actions">
+        <button class="secondary" id="refreshButton" type="button">↻ Actualiser</button>
+        <button class="secondary" id="logoutButton" type="button">Déconnexion</button>
+      </div>
+    </header>
+
+    <div class="stats">
+      <article class="stat"><span>Réponses</span><strong id="count">0</strong></article>
+      <article class="stat"><span>Prochaine date</span><strong id="nextDate">—</strong></article>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Activité</th>
+            <th>Date</th>
+            <th>Heure</th>
+            <th>Reçue le</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="responsesBody">
+          <tr><td colspan="5" class="empty">Chargement...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="status" id="dashboardStatus"></p>
+  </section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../supabase-config.js?v=18"></script>
+<script src="../admin.js?v=18"></script>
+</body>
+</html>
