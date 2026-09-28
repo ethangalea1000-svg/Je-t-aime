@@ -47,19 +47,38 @@ yes.addEventListener("click",()=>{
 
 no.addEventListener("click",()=>{
   noClickCount++;
+
   const currentMessage=noMessages[(noClickCount-1)%noMessages.length];
   const round=Math.floor((noClickCount-1)/noMessages.length)+1;
 
   message.textContent=currentMessage;
   message.dataset.round=round;
 
-  no.textContent=noClickCount>1
-    ? "NON (encore ?) 😭"
-    : "NON";
-
   if(noClickCount%5===0){
     message.textContent=currentMessage+" — Et oui, ça continue. ♾️";
   }
+
+  no.textContent=noClickCount>1
+    ? "NON ?"
+    : "NON";
+
+  // Le bouton rétrécit progressivement.
+  const scale=Math.max(0.24,1-(noClickCount*0.055));
+
+  // Puis il change de place à chaque clic, dans une zone contrôlée.
+  const maxX=Math.min(150,90+noClickCount*3);
+  const maxY=Math.min(30,10+noClickCount*1.5);
+  const x=Math.round((Math.random()*2-1)*maxX);
+  const y=Math.round((Math.random()*2-1)*maxY);
+  const rotation=Math.round((Math.random()*2-1)*8);
+
+  no.style.position="absolute";
+  no.style.left="50%";
+  no.style.top="50%";
+  no.style.transform=
+    "translate(calc(-50% + "+x+"px), calc(-50% + "+y+"px)) scale("+scale+") rotate("+rotation+"deg)";
+  no.style.transformOrigin="center center";
+  no.style.transition="transform .28s ease";
 });
 
 function showChoices(){
