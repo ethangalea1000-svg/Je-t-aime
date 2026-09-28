@@ -32,3 +32,29 @@ table{width:100%;border-collapse:collapse;min-width:680px}th,td{text-align:left;
 .delete-response:hover{
   background:#fecaca;
 }
+
+.loading-panel{
+  width:min(480px,100%);
+  margin:8vh auto 0;
+  padding:42px;
+  border-radius:28px;
+  background:#ffffffdd;
+  backdrop-filter:blur(18px);
+  box-shadow:0 24px 70px #11182718;
+  text-align:center;
+}
+.loading-dot{
+  width:12px;
+  height:12px;
+  margin:22px auto 0;
+  border-radius:50%;
+  background:#111827;
+  animation:adminPulse 1s ease-in-out infinite;
+}
+@keyframes adminPulse{
+  0%,100%{opacity:.25;transform:scale(.85)}
+  50%{opacity:1;transform:scale(1)}
+}
+@media(max-width:700px){
+  .loading-panel{padding:28px}
+}
