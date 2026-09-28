@@ -87,10 +87,40 @@ async function loadResponses(){
     "<tr><td><span class=\"badge\">"+escapeHtml(row.activity)+"</span></td>"+
     "<td>"+formatDate(row.date)+"</td>"+
     "<td><strong>"+escapeHtml(row.time.slice(0,5))+"</strong></td>"+
-    "<td>"+formatReceived(row.created_at)+"</td></tr>"
+    "<td>"+formatReceived(row.created_at)+"</td><td><button class=\"secondary delete-response\" data-id=\""+escapeHtml(row.id)+"\">Supprimer</button></td></tr>"
   ).join("");
 
+  document.querySelectorAll(".delete-response").forEach(button=>{
+    button.addEventListener("click",()=>deleteResponse(button.dataset.id));
+  });
+
   setStatus(dashboardStatus,"Dernière actualisation : "+new Date().toLocaleTimeString("fr-FR"));
+}
+
+async function deleteResponse(id){
+  if(!id)return;
+  if(!window.confirm("Supprimer définitivement cette réponse ?"))return;
+
+  const button=document.querySelector('.delete-response[data-id="'+CSS.escape(id)+'"]');
+  if(button){
+    button.disabled=true;
+    button.textContent="SUPPRESSION...";
+  }
+
+  const {error}=await supabase.from("date_responses").delete().eq("id",id);
+
+  if(error){
+    console.error("Suppression réponse:",error);
+    setStatus(dashboardStatus,getSupabaseError(error),"error");
+    if(button){
+      button.disabled=false;
+      button.textContent="Supprimer";
+    }
+    return;
+  }
+
+  setStatus(dashboardStatus,"Réponse supprimée.","success");
+  await loadResponses();
 }
 
 async function init(){
