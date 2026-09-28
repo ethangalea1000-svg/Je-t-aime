@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#111827">
 <title>Administration — Je t'aime</title>
-<link rel="stylesheet" href="../admin.css?v=4">
+<link id="adminCss" rel="stylesheet" href="../admin.css">
 </head>
 <body>
 <main class="admin-shell">
@@ -13,7 +13,7 @@
     <div class="brand">💗</div>
     <p class="eyebrow">ESPACE PRIVÉ</p>
     <h1>Administration</h1>
-    <p class="muted">Connecte-toi pour voir les réponses enregistrées.</p>
+    <p class="muted">La session est conservée sur cet appareil. La page charge automatiquement la dernière version du code.</p>
 
     <form id="loginForm" class="login-form" novalidate>
       <label>Email
@@ -24,7 +24,7 @@
       </label>
       <button class="primary" type="submit" id="loginButton">SE CONNECTER</button>
       <a class="forgot-link" href="../reset-password.html">Mot de passe oublié ?</a>
-      <p class="status success" id="loginStatus">Page admin chargée — version diagnostic.</p>
+      <p class="status success" id="loginStatus">Chargement de l’administration…</p>
     </form>
   </section>
 
@@ -67,128 +67,31 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../supabase-config.js?v=11"></script>
-<script src="../admin.js?v=15"></script>
 <script>
 (function(){
-  const form=document.getElementById("loginForm");
-  const button=document.getElementById("loginButton");
-  const status=document.getElementById("loginStatus");
+  const version=Date.now();
+  const css=document.getElementById("adminCss");
+  if(css)css.href="../admin.css?v="+version;
 
-  function say(msg,type){
-    if(!status)return;
-    status.textContent=msg;
-    status.className="status "+(type||"");
+  function loadScript(src){
+    return new Promise((resolve,reject)=>{
+      const s=document.createElement("script");
+      s.src=src;
+      s.onload=resolve;
+      s.onerror=()=>reject(new Error("Impossible de charger "+src));
+      document.body.appendChild(s);
+    });
   }
 
-  async function doLogin(event){
-    if(event) event.preventDefault();
-    say("Clic détecté — connexion en cours…","success");
-    button.disabled=true;
-    button.textContent="CONNEXION...";
-
-    try{
-      if(!window.supabase) throw new Error("Supabase JS ne s'est pas chargé.");
-      if(typeof SUPABASE_URL==="undefined" || typeof SUPABASE_PUBLISHABLE_KEY==="undefined"){
-        throw new Error("Configuration Supabase introuvable.");
+  loadScript("../supabase-config.js?v="+version)
+    .then(()=>loadScript("../admin.js?v="+version))
+    .catch(error=>{
+      const status=document.getElementById("loginStatus");
+      if(status){
+        status.textContent=error.message;
+        status.className="status error";
       }
-
-      const email=document.getElementById("email").value.trim();
-      const password=document.getElementById("password").value;
-
-      if(!email || !password){
-        throw new Error("Entre ton email et ton mot de passe.");
-      }
-
-      const client=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY);
-      const result=await client.auth.signInWithPassword({email,password});
-
-      if(result.error) throw result.error;
-      if(!result.data.user) throw new Error("Aucun utilisateur retourné.");
-
-      say("Compte connecté — vérification des droits admin…","success");
-
-      const check=await client
-        .from("date_admins")
-        .select("user_id")
-        .eq("user_id",result.data.user.id)
-        .maybeSingle();
-
-      if(check.error) throw check.error;
-
-      if(!check.data){
-        await client.auth.signOut();
-        throw new Error("Ce compte n'est pas autorisé à accéder à l'administration.");
-      }
-
-      document.getElementById("loginPanel").classList.add("hidden");
-      document.getElementById("dashboard").classList.remove("hidden");
-
-      const body=document.getElementById("responsesBody");
-      body.innerHTML="<tr><td colspan=\"5\" class=\"empty\">Chargement...</td></tr>";
-
-      const rows=await client
-        .from("date_responses")
-        .select("id,activity,date,time,created_at")
-        .order("date",{ascending:true})
-        .order("time",{ascending:true});
-
-      if(rows.error) throw rows.error;
-
-      document.getElementById("count").textContent=rows.data.length;
-      document.getElementById("nextDate").textContent=rows.data.length
-        ? new Date(rows.data[0].date+"T00:00:00").toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short",year:"numeric"})
-        : "—";
-
-      body.innerHTML=rows.data.length
-        ? rows.data.map(function(row){
-            const d=new Date(row.date+"T00:00:00").toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short",year:"numeric"});
-            const r=new Date(row.created_at).toLocaleString("fr-FR",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"});
-            return "<tr><td>"+String(row.activity).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")+" <button type=\"button\" class=\"secondary delete-response\" data-id=\""+String(row.id)+"\">SUPPRIMER</button></td><td>"+d+"</td><td><strong>"+String(row.time).slice(0,5)+"</strong></td><td>"+r+"</td></tr>";
-          }).join("")
-        : "<tr><td colspan=\"5\" class=\"empty\">Aucune réponse.</td></tr>";
-
-      document.querySelectorAll(".delete-response").forEach(function(delButton){
-        delButton.addEventListener("click",async function(){
-          const id=this.dataset.id;
-          if(!id || !window.confirm("Supprimer définitivement cette réponse ?")) return;
-          this.disabled=true;
-          this.textContent="SUPPRESSION...";
-          const deleted=await client.from("date_responses").delete().eq("id",id);
-          if(deleted.error){
-            console.error(deleted.error);
-            document.getElementById("dashboardStatus").textContent=deleted.error.message || "Impossible de supprimer la réponse.";
-            this.disabled=false;
-            this.textContent="Supprimer";
-            return;
-          }
-          this.closest("tr").remove();
-          const remaining=await client.from("date_responses").select("id,activity,date,time,created_at").order("date",{ascending:true}).order("time",{ascending:true});
-          if(remaining.error){
-            console.error(remaining.error);
-            return;
-          }
-          document.getElementById("count").textContent=remaining.data.length;
-          document.getElementById("nextDate").textContent=remaining.data.length
-            ? new Date(remaining.data[0].date+"T00:00:00").toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short",year:"numeric"})
-            : "—";
-          document.getElementById("dashboardStatus").textContent="Réponse supprimée.";
-        });
-      });
-
-      document.getElementById("dashboardStatus").textContent="Connexion réussie.";
-    }catch(error){
-      console.error(error);
-      say(error && error.message ? error.message : "Erreur inconnue.","error");
-    }finally{
-      button.disabled=false;
-      button.textContent="SE CONNECTER";
-    }
-  }
-
-  form.addEventListener("submit",doLogin);
-  button.addEventListener("click",doLogin);
-  say("JavaScript de connexion chargé.","success");
+    });
 })();
 </script>
 </body>
