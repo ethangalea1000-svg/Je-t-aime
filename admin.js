@@ -2,7 +2,6 @@ let supabase=null;
 let sessionUserId=null;
 let appReady=false;
 
-const loadingPanel=document.getElementById("loadingPanel");
 const loginPanel=document.getElementById("loginPanel");
 const dashboard=document.getElementById("dashboard");
 const loginForm=document.getElementById("loginForm");
@@ -48,11 +47,9 @@ function formatReceived(value){
 }
 
 function showOnly(view){
-  loadingPanel.classList.add("hidden");
   loginPanel.classList.add("hidden");
   dashboard.classList.add("hidden");
 
-  if(view==="loading")loadingPanel.classList.remove("hidden");
   if(view==="login")loginPanel.classList.remove("hidden");
   if(view==="dashboard")dashboard.classList.remove("hidden");
 }
@@ -182,7 +179,8 @@ async function openForSession(session){
 }
 
 async function startAdmin(){
-  showOnly("loading");
+  showOnly("login");
+  setStatus(loginStatus,"Vérification de la session...", "success");
 
   try{
     if(!window.supabase)throw new Error("Supabase JS ne s'est pas chargé.");
@@ -204,7 +202,12 @@ async function startAdmin(){
 
     // Une seule lecture de session au démarrage.
     // Aucun événement INITIAL_SESSION/TOKEN_REFRESHED ne change l'écran.
-    const {data,error}=await supabase.auth.getSession();
+    const sessionPromise=supabase.auth.getSession();
+    const timeoutPromise=new Promise((_,reject)=>{
+      setTimeout(()=>reject(new Error("La vérification de session prend trop de temps.")),5000);
+    });
+
+    const {data,error}=await Promise.race([sessionPromise,timeoutPromise]);
     if(error)throw error;
 
     await openForSession(data.session);
