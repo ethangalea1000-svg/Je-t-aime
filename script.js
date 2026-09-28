@@ -4,6 +4,36 @@ const message=document.getElementById("message");
 const actions=document.getElementById("actions");
 const app=document.getElementById("app");
 
+const noMessages=[
+  "NON ? 🤨 Tentative refusée par le comité des sorties.",
+  "Erreur 404 : le bouton NON a disparu.",
+  "Hmm… cette réponse n’est pas disponible aujourd’hui.",
+  "Le système préfère clairement OUI. 😌",
+  "Refus enregistré… puis immédiatement annulé.",
+  "Tu peux réessayer, mais le résultat risque d’être similaire. 😂",
+  "Le bouton NON vient de demander une pause.",
+  "Analyse en cours… conclusion : OUI.",
+  "Le service des refus est exceptionnellement fermé.",
+  "Même l’ordinateur trouve ça suspect. 💻",
+  "Alerte : niveau de NON trop élevé.",
+  "Nouvelle règle : on retente une fois. 😎",
+  "Le serveur répond : « intéressant… mais non au NON ».",
+  "Bon… techniquement, tu as cliqué sur NON.",
+  "Résultat officiel : tentative numéro suivante.",
+  "Le bouton NON a été placé sous surveillance.",
+  "C’est courageux d’insister. 😂",
+  "Le comité délibère encore…",
+  "Verdict provisoire : essaie OUI.",
+  "Le système refuse de prendre cette réponse au sérieux.",
+  "NON détecté. Humour activé.",
+  "Tu viens de débloquer un autre message.",
+  "Il semblerait que le bouton NON ait beaucoup trop confiance en lui.",
+  "Encore un clic ? D’accord, j’ai encore des messages.",
+  "Infini : oui. Les messages aussi. ♾️"
+];
+
+let noClickCount=0;
+
 yes.addEventListener("click",()=>{
   app.innerHTML=
     '<div class="icon">✓</div>'+
@@ -16,11 +46,20 @@ yes.addEventListener("click",()=>{
 });
 
 no.addEventListener("click",()=>{
-  app.innerHTML=
-    '<div class="icon">○</div>'+
-    '<p class="eyebrow">RÉPONSE ENREGISTRÉE</p>'+
-    '<h1>D’accord, pas de sortie.</h1>'+
-    '<p class="sub">Merci d’avoir répondu 🙂</p>';
+  noClickCount++;
+  const currentMessage=noMessages[(noClickCount-1)%noMessages.length];
+  const round=Math.floor((noClickCount-1)/noMessages.length)+1;
+
+  message.textContent=currentMessage;
+  message.dataset.round=round;
+
+  no.textContent=noClickCount>1
+    ? "NON (encore ?) 😭"
+    : "NON";
+
+  if(noClickCount%5===0){
+    message.textContent=currentMessage+" — Et oui, ça continue. ♾️";
+  }
 });
 
 function showChoices(){
